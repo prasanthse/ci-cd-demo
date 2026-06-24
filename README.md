@@ -1,75 +1,72 @@
-# React + TypeScript + Vite
+# CI/CD PIPELINE SETUP INSTRUCTIONS
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Follow these steps to configure or update the CI/CD pipeline for this project:
+1. **Configure Triggers**: Update the ```on``` section in ```.github/workflows/deploy.yml``` to specify the branches that should trigger the pipeline ```(e.g., main, development)```.
 
-Currently, two official plugins are available:
+2. **Specify Node.js Version**: Ensure the ```node-version``` in the ```Setup Node.js``` step matches the version required by your project.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+3. **Define Environment Metadata**: In the ```Configure Build Environment``` step, define how the pipeline should handle versioning and environment tagging for your specific deployment targets.
 
-## React Compiler
+4. **Inject Environment Variables**: In the ```Build Application``` step, map all necessary environment variables to the build process.
+  - ***Note***: Use GitHub Repository Secrets to handle sensitive data
+  - Ensure the env keys match the variables expected by your React application ```(e.g., process.env.REACT_APP_...)```.
+  - To ensure your pipeline functions correctly and securely, it is essential that you add your environment variables to the repository settings rather than the code itself.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## How to Create Environments in GitHub
 
-## Expanding the ESLint configuration
+If you have multiple environments ```(e.g., Staging and Production)```, skip this section
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+1. Go to your Repository ```Settings```.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+2. On the left sidebar, click ```Environments```.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+3. Click New environment. Create your environments. ```(e.g., staging and production)```.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## How to Configure Repository Secrets
 
-```
+If you have a single environment:
+1. **Navigate to Settings**: Go to your GitHub repository and click on the ```Settings tab```.
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+2. **Access Secrets**: In the left sidebar, click on ```Secrets and variables -> Actions```.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+3. **Create New Secret**: Click the ```New repository secret button```.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+4. **Add Your Keys**: For every entry in your ```.env``` files ```(e.g., REACT_APP_SOME_API_KEY)```, create a corresponding secret:
+  - **Name**: Copy the exact variable name (e.g., REACT_APP_SOME_API_KEY).
+  - **Secret**: Paste the actual value from your local .env file.
+  - Click Add secret.
 
-```
+If you have multiple environments ```(e.g., Staging and Production)```:
+1. Once the environments are created, click on each one ```(e.g., click staging)```:
+
+2. Scroll down to ```Environment secrets```.
+
+3. Click Add secret.
+
+4. Add your env variables with the specific environment value here.
+
+5. Repeat for the other environments, adding the same variable name but with the environment-specific value.
+
+## How to Configure Repository Variables
+
+If you have a single environment:
+1. Go to ```Settings > Secrets``` and ```variables > Actions```.
+
+2. Click the ```Variables tab```.
+
+3. Click ```New repository variable```.
+
+4. Enter the Name and Value for your configuration setting.
+
+5. Click Add variable.
+
+If you have multiple environments ```(e.g., Staging and Production)```:
+1. Go to ```Settings > Environments``` and click on your environment ```(e.g., staging)```.
+
+2. Scroll down to Environment variables.
+
+3. Click Add variable.
+
+4. Enter the Name ```(e.g., REACT_APP_ENVIRONMENT_NAME)``` and the Value ```(e.g., Staging)```.
+
+5. Repeat for the other environments, adding the same variable name but with the environment-specific value.

@@ -1,67 +1,77 @@
 name: CI/CD Demo
 
 on:
-  push:
-    branches: [main, development]
-  pull_request:
-    branches: [main, development]
+    push:
+        # Specify the branches that should trigger the pipeline when push
+        branches: [main, development]
+    pull_request:
+        # Specify the branches that should trigger the pipeline when pull request
+        branches: [main, development]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+    build:
+        outputs:
+            # Declare your output variables so other jobs can see it
+            env_name: ${{ steps.env-resolver.outputs.name }}
+        runs-on: ubuntu-latest
+        steps:
+          - name: Checkout Code
+            uses: actions/checkout@v4
+            
+          - name: Setup Node.js
+            uses: actions/setup-node@v4
+            with:
+                # Set the node version required by your project
+                node-version: '22'
+                
+          - name: Install Dependencies
+            run: npm install
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
+          - name: Set Version and Env
+            id: env-resolver
+            # Define how the pipeline should handle tagging for your specific deployment targets
+            run: |
+                VERSION=$(node -p "require('./package.json').version")
+                if [[ $GITHUB_REF == 'refs/heads/main' ]]; then
+                    echo "REACT_APP_APP_VERSION=$VERSION" >> $GITHUB_ENV
+                    echo "ENV_TYPE=production" >> $GITHUB_ENV
+                    echo "name=production" >> $GITHUB_OUTPUT
+                else
+                    echo "REACT_APP_APP_VERSION=$VERSION-staging" >> $GITHUB_ENV
+                    echo "ENV_TYPE=staging" >> $GITHUB_ENV
+                    echo "name=staging" >> $GITHUB_OUTPUT
+                fi
 
-      - name: Install Dependencies
-        run: npm install
+          - name: Build Application
+            env:
+                #Inject Secrets into the Build
+                REACT_APP_SOME_API_KEY: ${{ secrets.REACT_APP_SOME_API_KEY }}
+                # App Version injected from previous step
+                REACT_APP_APP_VERSION: ${{ env.REACT_APP_APP_VERSION }}
+                REACT_APP_ENV: ${{ env.ENV_TYPE }}
+            run: |
+                if [[ $ENV_TYPE == 'production' ]]; then
+                    npm run build
+                else
+                    npm run build:staging
+                fi
 
-      - name: Set Version and Env
-        run: |
-          VERSION=$(node -p "require('./package.json').version")
-          if [[ $GITHUB_REF == 'refs/heads/main' ]]; then
-            echo "REACT_APP_APP_VERSION=$VERSION" >> $GITHUB_ENV
-            echo "ENV_TYPE=production" >> $GITHUB_ENV
-          else
-            echo "REACT_APP_APP_VERSION=$VERSION-staging" >> $GITHUB_ENV
-            echo "ENV_TYPE=staging" >> $GITHUB_ENV
-          fi
+          - name: Upload Build Artifacts
+            uses: actions/upload-pages-artifact@v3
+            with:
+                path: './build'
 
-      - name: Build Application
-        env:
-          # Inject Secrets into the Build
-          REACT_APP_SOME_API_KEY: ${{ secrets.REACT_APP_SOME_API_KEY }}
-          # App Version injected from previous step
-          REACT_APP_APP_VERSION: ${{ env.REACT_APP_APP_VERSION }}
-          REACT_APP_ENV: ${{ env.ENV_TYPE }}
-        run: |
-          if [[ $ENV_TYPE == 'production' ]]; then
-            npm run build
-          else
-            npm run build:staging
-          fi
-
-      - name: Upload Build Artifacts
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: './build'
-
-  deploy:
-    needs: build
-    if: github.event_name == 'push' # Only deploy when code is pushed to branch
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+    deploy:
+        needs: build
+        if: github.event_name == 'push' # Only deploy when code is pushed to branch
+        runs-on: ubuntu-latest
+        permissions:
+            pages: write
+            id-token: write
+        environment:
+            name: ${{ needs.build.outputs.env_name }}
+            url: ${{ steps.deployment.outputs.page_url }}
+        steps:
+          - name: Deploy to GitHub Pages
+            id: deployment
+            uses: actions/deploy-pages@v4
