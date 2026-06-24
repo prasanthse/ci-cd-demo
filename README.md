@@ -9,7 +9,6 @@ Follow these steps to configure or update the CI/CD pipeline for this project:
 
 4. **Inject Environment Variables**: In the ```Build Application``` step, map all necessary environment variables to the build process.
   - ***Note***: Use GitHub Repository Secrets to handle sensitive data
-  - Ensure the env keys match the variables expected by your React application ```(e.g., process.env.REACT_APP_...)```.
   - To ensure your pipeline functions correctly and securely, it is essential that you add your environment variables to the repository settings rather than the code itself.
 
 ## How to Create Environments in GitHub
@@ -31,8 +30,8 @@ If you have a single environment:
 
 3. **Create New Secret**: Click the ```New repository secret button```.
 
-4. **Add Your Keys**: For every entry in your ```.env``` files ```(e.g., REACT_APP_SOME_API_KEY)```, create a corresponding secret:
-  - **Name**: Copy the exact variable name (e.g., REACT_APP_SOME_API_KEY).
+4. **Add Your Keys**: For every entry in your ```.env``` files ```(e.g., VITE_SOME_API_KEY)```, create a corresponding secret:
+  - **Name**: Copy the exact variable name ```(e.g., VITE_SOME_API_KEY)```.
   - **Secret**: Paste the actual value from your local .env file.
   - Click Add secret.
 
@@ -67,6 +66,6 @@ If you have multiple environments ```(e.g., Staging and Production)```:
 
 3. Click Add variable.
 
-4. Enter the Name ```(e.g., REACT_APP_ENVIRONMENT_NAME)``` and the Value ```(e.g., Staging)```.
+4. Enter the Name ```(e.g., VITE_ENVIRONMENT_NAME)``` and the Value ```(e.g., Staging)```.
 
 5. Repeat for the other environments, adding the same variable name but with the environment-specific value.
