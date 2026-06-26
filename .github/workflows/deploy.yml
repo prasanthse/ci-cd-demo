@@ -21,6 +21,8 @@ on:
 
 jobs:
     build:
+        permissions:
+            contents: write # Required if you want the pipeline to push changes to package.json
         outputs:
             # Declare your output variables so other jobs can see it
             env_name: ${{ steps.env-resolver.outputs.name }}
@@ -28,6 +30,8 @@ jobs:
         steps:
           - name: Checkout Code
             uses: actions/checkout@v4
+            with:
+                token: ${{ secrets.GITHUB_TOKEN }}
             
           - name: Setup Node.js
             uses: actions/setup-node@v4
@@ -51,8 +55,15 @@ jobs:
 
                 npm version $RELEASE --no-git-tag-version
 
-                VERSION=$(node -p "require('./package.json').version")
+                # Save changes back to the repository
+                git add package.json
 
+                # Use [skip ci] so this commit doesn't trigger another pipeline loop
+                git commit -m "chore: bump version to $(node -p "require('./package.json').version") [skip ci]"
+                git push
+
+                # Resolve environment and output version
+                VERSION=$(node -p "require('./package.json').version")
                 if [[ $GITHUB_REF == 'refs/heads/main' ]]; then
                     echo "VITE_APP_VERSION=$VERSION" >> $GITHUB_ENV
                     echo "ENV_TYPE=production" >> $GITHUB_ENV
@@ -89,7 +100,6 @@ jobs:
         permissions:
             pages: write
             id-token: write
-            contents: write # Required if you want the pipeline to push changes to package.json
         environment:
             name: ${{ needs.build.outputs.env_name }}
             url: ${{ steps.deployment.outputs.page_url }}
