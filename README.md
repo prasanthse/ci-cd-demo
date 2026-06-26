@@ -81,3 +81,5 @@ If you have multiple environments ```(e.g., Staging and Production)```:
 4. Under Build and deployment > Source, change the dropdown from ```"Deploy from a branch"``` to ```"GitHub Actions"```.
 
 5. Once you select "GitHub Actions", GitHub will automatically configure the necessary permissions to allow your deploy.yml to push artifacts to the Pages service.
+
+  - ***Note***: Vite projects default to looking for files at the root (/). However, GitHub Pages often hosts your site at https://yourusername.github.io/your-repo-name/. Because your site is in a sub-folder (/your-repo-name/), your browser looks for https://yourusername.github.io/index.html instead of the correct path. The Fix: Open your vite.config.js and add the base property.

@@ -7,6 +7,17 @@ on:
     pull_request:
         # Specify the branches that should trigger the pipeline when pull request
         branches: [main, development]
+    workflow_dispatch:
+        inputs:
+            release_type:
+                description: 'Release type'
+                required: true
+                default: 'patch'
+                type: choice
+                options:
+                    - patch
+                    - minor
+                    - major
 
 jobs:
     build:
@@ -31,7 +42,13 @@ jobs:
             id: env-resolver
             # Define how the pipeline should handle tagging for your specific deployment targets
             run: |
+                # Use the input if it exists, otherwise default to patch
+                RELEASE=${{ github.event.inputs.release_type || 'patch' }}
+
+                npm version $RELEASE --no-git-tag-version
+
                 VERSION=$(node -p "require('./package.json').version")
+
                 if [[ $GITHUB_REF == 'refs/heads/main' ]]; then
                     echo "VITE_APP_VERSION=$VERSION" >> $GITHUB_ENV
                     echo "ENV_TYPE=production" >> $GITHUB_ENV
