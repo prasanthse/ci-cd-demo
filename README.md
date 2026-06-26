@@ -83,3 +83,20 @@ If you have multiple environments ```(e.g., Staging and Production)```:
 5. Once you select "GitHub Actions", GitHub will automatically configure the necessary permissions to allow your deploy.yml to push artifacts to the Pages service.
 
   - ***Note***: Vite projects default to looking for files at the root (/). However, GitHub Pages often hosts your site at https://yourusername.github.io/your-repo-name/. Because your site is in a sub-folder (/your-repo-name/), your browser looks for https://yourusername.github.io/index.html instead of the correct path. The Fix: Open your vite.config.js and add the base property.
+
+## Version Upgrade
+
+Once you push the change to your repository:
+1. Go to your GitHub repository page.
+
+2. Click the ```Actions tab```.
+
+3. On the left-hand sidebar, click on your pipeline name.
+
+4. You will see a banner that says: ```"This workflow has a workflow_dispatch trigger."```
+
+5. Click the ```Run workflow button``` (on the right side).
+
+6. A dropdown menu will appear where you can select patch, minor, or major.
+
+7. Click the ```green Run workflow button```.
