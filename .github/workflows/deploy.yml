@@ -42,6 +42,10 @@ jobs:
             id: env-resolver
             # Define how the pipeline should handle tagging for your specific deployment targets
             run: |
+                # Configure git user for the commit
+                git config --global user.name "github-actions[bot]"
+                git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
                 # Use the input if it exists, otherwise default to patch
                 RELEASE=${{ github.event.inputs.release_type || 'patch' }}
 
@@ -85,6 +89,7 @@ jobs:
         permissions:
             pages: write
             id-token: write
+            contents: write # Required if you want the pipeline to push changes to package.json
         environment:
             name: ${{ needs.build.outputs.env_name }}
             url: ${{ steps.deployment.outputs.page_url }}
