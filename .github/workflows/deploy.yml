@@ -18,11 +18,21 @@ on:
                     - patch
                     - minor
                     - major
+            target_env:
+                description: 'Select Deployment Target'
+                required: true
+                type: choice
+                default: 'none'
+                options:
+                    - 'none'
+                    - 'github'
+                    - 'firebase'
 
 jobs:
     build:
         permissions:
-            contents: write # Required if you want the pipeline to push changes to package.json
+            # Required if you want the pipeline to push changes to package.json
+            contents: write
         outputs:
             # Declare your output variables so other jobs can see it
             env_name: ${{ steps.env-resolver.outputs.name }}
@@ -37,7 +47,7 @@ jobs:
           - name: Setup Node.js
             uses: actions/setup-node@v4
             with:
-                # Set the node version required by your project
+                # Set the node version required for your project
                 node-version: '22'
                 
           - name: Install Dependencies
@@ -80,7 +90,7 @@ jobs:
 
           - name: Build Application
             env:
-                #Inject Secrets into the Build
+                # Inject Secrets into the Build
                 VITE_SOME_API_KEY: ${{ secrets.VITE_SOME_API_KEY }}
                 # App Version injected from previous step
                 VITE_APP_VERSION: ${{ env.VITE_APP_VERSION }}
@@ -92,23 +102,66 @@ jobs:
                     npm run build:staging
                 fi
 
+          - name: Restructure Staging Artifact Directory
+            run: |
+                if [[ $ENV_TYPE == 'staging' ]]; then
+                    echo "Nesting staging files into a /staging directory..."
+                    mkdir -p dist_temp/staging
+                    mv dist/* dist_temp/staging/
+                    rm -rf dist
+                    mv dist_temp dist
+                fi
+                
           - name: Upload Build Artifacts
             uses: actions/upload-pages-artifact@v3
             with:
+                # Set your build folder name
                 path: './dist'
 
     deploy:
         needs: build
-        # Deploy on pushes OR when you manually run it on main/development
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        # Deploy ONLY when someone manually clicks the "Run workflow" button
+        if: github.event_name == 'workflow_dispatch' && inputs.target_env != 'none'
         runs-on: ubuntu-latest
         permissions:
             pages: write
             id-token: write
         environment:
             name: ${{ needs.build.outputs.env_name }}
-            url: ${{ steps.deployment.outputs.page_url }}
         steps:
-          - name: Deploy to GitHub Pages
-            id: deployment
+          - name: Checkout Code
+            uses: actions/checkout@v4
+
+          - name: Download Build Artifacts
+            uses: actions/download-artifact@v4
+            with:
+                name: github-pages
+                path: ./dist
+
+          - name: Deploy to GitHub Pages (Staging)
+            if: inputs.target_env == 'github' && needs.build.outputs.env_name == 'staging'
             uses: actions/deploy-pages@v4
+
+          - name: Deploy to GitHub Pages (Production)
+            if: inputs.target_env == 'github' && needs.build.outputs.env_name == 'production'
+            uses: actions/deploy-pages@v4
+
+          - name: Deploy to Firebase (Staging)
+            if: inputs.target_env == 'firebase' && needs.build.outputs.env_name == 'staging'
+            uses: FirebaseExtended/action-hosting-deploy@v0
+            with:
+                repoToken: ${{ secrets.GITHUB_TOKEN }}
+                firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+                #  Deploy to the staging URL
+                target: your-staging-firebase-url
+                channelId: live
+
+          - name: Deploy to Firebase (Production)
+            if: inputs.target_env == 'firebase' && needs.build.outputs.env_name == 'production'
+            uses: FirebaseExtended/action-hosting-deploy@v0
+            with:
+                repoToken: ${{ secrets.GITHUB_TOKEN }}
+                firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+                #  Deploy to the production URL
+                target: your-production-firebase-url
+                channelId: live
