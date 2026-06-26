@@ -1,0 +1,114 @@
+name: CI/CD Demo
+
+on:
+    push:
+        # Specify the branches that should trigger the pipeline when push
+        branches: [main, development]
+    pull_request:
+        # Specify the branches that should trigger the pipeline when pull request
+        branches: [main, development]
+    workflow_dispatch:
+        inputs:
+            release_type:
+                description: 'Release type'
+                required: true
+                default: 'patch'
+                type: choice
+                options:
+                    - patch
+                    - minor
+                    - major
+
+jobs:
+    build:
+        permissions:
+            contents: write # Required if you want the pipeline to push changes to package.json
+        outputs:
+            # Declare your output variables so other jobs can see it
+            env_name: ${{ steps.env-resolver.outputs.name }}
+        runs-on: ubuntu-latest
+        steps:
+          - name: Checkout Code
+            uses: actions/checkout@v4
+            with:
+                token: ${{ secrets.GITHUB_TOKEN }}
+                ref: ${{ github.ref }}
+            
+          - name: Setup Node.js
+            uses: actions/setup-node@v4
+            with:
+                # Set the node version required by your project
+                node-version: '22'
+                
+          - name: Install Dependencies
+            run: npm install
+
+          - name: Set Version and Env
+            id: env-resolver
+            # Define how the pipeline should handle tagging for your specific deployment targets
+            run: |
+                # Configure git user for the commit
+                git config --global user.name "github-actions[bot]"
+                git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+                # Only bump version if this was triggered MANUALLY via workflow_dispatch
+                if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+                    RELEASE="${{ github.event.inputs.release_type }}"
+                    echo "Manual release triggered: $RELEASE"
+                    
+                    npm version $RELEASE --no-git-tag-version
+                    git add package.json
+                    git commit -m "chore: bump version to $(node -p "require('./package.json').version") [skip ci]"
+                    
+                    # Push back using the explicit branch ref to avoid detached HEAD errors
+                    git push origin HEAD:${{ github.ref_name }}
+                else
+                    echo "Automatic trigger (${{ github.event_name }}). Skipping version bump."
+                fi
+
+                # Resolve environment and output version
+                VERSION=$(node -p "require('./package.json').version")
+                if [[ $GITHUB_REF == 'refs/heads/main' ]]; then
+                    echo "VITE_APP_VERSION=$VERSION" >> $GITHUB_ENV
+                    echo "ENV_TYPE=production" >> $GITHUB_ENV
+                    echo "name=production" >> $GITHUB_OUTPUT
+                else
+                    echo "VITE_APP_VERSION=$VERSION-staging" >> $GITHUB_ENV
+                    echo "ENV_TYPE=staging" >> $GITHUB_ENV
+                    echo "name=staging" >> $GITHUB_OUTPUT
+                fi
+
+          - name: Build Application
+            env:
+                #Inject Secrets into the Build
+                VITE_SOME_API_KEY: ${{ secrets.VITE_SOME_API_KEY }}
+                # App Version injected from previous step
+                VITE_APP_VERSION: ${{ env.VITE_APP_VERSION }}
+                VITE_APP_ENV: ${{ env.ENV_TYPE }}
+            run: |
+                if [[ $ENV_TYPE == 'production' ]]; then
+                    npm run build:production
+                else
+                    npm run build:staging
+                fi
+
+          - name: Upload Build Artifacts
+            uses: actions/upload-pages-artifact@v3
+            with:
+                path: './dist'
+
+    deploy:
+        needs: build
+        # Deploy on pushes OR when you manually run it on main/development
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        runs-on: ubuntu-latest
+        permissions:
+            pages: write
+            id-token: write
+        environment:
+            name: ${{ needs.build.outputs.env_name }}
+            url: ${{ steps.deployment.outputs.page_url }}
+        steps:
+          - name: Deploy to GitHub Pages
+            id: deployment
+            uses: actions/deploy-pages@v4
