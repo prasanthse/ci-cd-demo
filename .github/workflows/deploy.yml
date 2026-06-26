@@ -32,6 +32,7 @@ jobs:
             uses: actions/checkout@v4
             with:
                 token: ${{ secrets.GITHUB_TOKEN }}
+                ref: ${{ github.ref }}
             
           - name: Setup Node.js
             uses: actions/setup-node@v4
@@ -50,17 +51,20 @@ jobs:
                 git config --global user.name "github-actions[bot]"
                 git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-                # Use the input if it exists, otherwise default to patch
-                RELEASE=${{ github.event.inputs.release_type || 'patch' }}
-
-                npm version $RELEASE --no-git-tag-version
-
-                # Save changes back to the repository
-                git add package.json
-
-                # Use [skip ci] so this commit doesn't trigger another pipeline loop
-                git commit -m "chore: bump version to $(node -p "require('./package.json').version") [skip ci]"
-                git push
+                # Only bump version if this was triggered MANUALLY via workflow_dispatch
+                if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+                    RELEASE="${{ github.event.inputs.release_type }}"
+                    echo "Manual release triggered: $RELEASE"
+                    
+                    npm version $RELEASE --no-git-tag-version
+                    git add package.json
+                    git commit -m "chore: bump version to $(node -p "require('./package.json').version") [skip ci]"
+                    
+                    # Push back using the explicit branch ref to avoid detached HEAD errors
+                    git push origin HEAD:${{ github.ref_name }}
+                else
+                    echo "Automatic trigger (${{ github.event_name }}). Skipping version bump."
+                fi
 
                 # Resolve environment and output version
                 VERSION=$(node -p "require('./package.json').version")
@@ -95,7 +99,8 @@ jobs:
 
     deploy:
         needs: build
-        if: github.event_name == 'push' # Only deploy when code is pushed to branch
+        # Deploy on pushes OR when you manually run it on main/development
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         runs-on: ubuntu-latest
         permissions:
             pages: write
