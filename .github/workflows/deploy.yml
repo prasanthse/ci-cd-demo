@@ -48,10 +48,10 @@ jobs:
                 VITE_SOME_API_KEY: ${{ secrets.VITE_SOME_API_KEY }}
                 # App Version injected from previous step
                 VITE_APP_VERSION: ${{ env.VITE_APP_VERSION }}
-                VITE_APP_ENV: ${{ env.VITE_APP_ENV }}
+                VITE_APP_ENV: ${{ env.ENV_TYPE }}
             run: |
                 if [[ $ENV_TYPE == 'production' ]]; then
-                    npm run build
+                    npm run build:production
                 else
                     npm run build:staging
                 fi
@@ -59,7 +59,7 @@ jobs:
           - name: Upload Build Artifacts
             uses: actions/upload-pages-artifact@v3
             with:
-                path: './build'
+                path: './dist'
 
     deploy:
         needs: build
