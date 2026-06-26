@@ -69,3 +69,15 @@ If you have multiple environments ```(e.g., Staging and Production)```:
 4. Enter the Name ```(e.g., VITE_ENVIRONMENT_NAME)``` and the Value ```(e.g., Staging)```.
 
 5. Repeat for the other environments, adding the same variable name but with the environment-specific value.
+
+## Enable GitHub Pages
+
+1. Go to your repository on GitHub
+
+2. Click on the ```Settings tab```.
+
+3. On the left sidebar, scroll down to the "Code and automation" section and click ```Pages```.
+
+4. Under Build and deployment > Source, change the dropdown from ```"Deploy from a branch"``` to ```"GitHub Actions"```.
+
+5. Once you select "GitHub Actions", GitHub will automatically configure the necessary permissions to allow your deploy.yml to push artifacts to the Pages service.
