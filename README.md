@@ -146,3 +146,20 @@ If you are using this pipeline template for a backend project (like Node.js) or 
 9. Choose your ```target branch```, and change the ```Select Deployment Target``` dropdown to ```firebase```.
 
 10. Click the ```green Run workflow button```.
+
+> ⚠️ **CRITICAL ARCHITECTURE NOTE: MULTI-ENVIRONMENT HOSTING**
+> 
+> **GitHub Pages** natively supports only **one active deployment per repository**. 
+> * If you select the `github` target while on the `development` branch, it will overwrite your live production site.
+> * If you select the `github` target while on the `main` branch, it will overwrite your staging site.
+>
+> **The Recommendation:**
+> If your project requires true, simultaneous multi-environment deployments (where both Staging and Production URLs must be online at the same exact time), **do not use GitHub Pages for both targets**. 
+> 
+> Instead, we highly recommend integrating specialized modern hosting platforms that natively support parallel environment tracking, such as:
+> * **Firebase Hosting** (Excellent for Google Ecosystem integrations and custom multi-site targets)
+> * **Vercel** (The industry standard for frontend frameworks like Next.js/Vite with instant preview branches)
+> * **Netlify** (Incredibly developer-friendly with robust forms, serverless functions, and production splits)
+> * **AWS Amplify / Cloudflare Pages** (Best for enterprise-level scaling, edge routing, and deeper cloud architectures)
+> 
+> **How to mix them:** Use **GitHub Pages** exclusively for your `main` branch (Production) and hook your `development` branch (Staging) up to one of the providers listed above via your dropdown options!
