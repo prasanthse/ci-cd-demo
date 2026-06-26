@@ -102,6 +102,16 @@ jobs:
                     npm run build:staging
                 fi
 
+          - name: Restructure Staging Artifact Directory
+            run: |
+                if [[ $ENV_TYPE == 'staging' ]]; then
+                    echo "Nesting staging files into a /staging directory..."
+                    mkdir -p dist_temp/staging
+                    mv dist/* dist_temp/staging/
+                    rm -rf dist
+                    mv dist_temp dist
+                fi
+                
           - name: Upload Build Artifacts
             uses: actions/upload-pages-artifact@v3
             with:
